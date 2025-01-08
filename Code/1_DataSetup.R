@@ -180,7 +180,7 @@ dim(trait_mat)
 dim(survey_mat)
 
 survey.mat <- survey_mat %>% ungroup() %>%
-  select(-c(est_year, hex_id, EPU, haul_id, id)) %>% 
+  select(-c(five_year_period, hex_id, EPU, haul_id, id)) %>% 
   as.matrix()
 
 dim(survey.mat)
