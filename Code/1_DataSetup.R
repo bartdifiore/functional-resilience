@@ -1,14 +1,14 @@
-library(gmRi)
+#library(gmRi)
 library(tidyverse)
 library(sf)
 library(ggplot2)
 library(vegan)
 library(mFD)
-source("~/Github/gmRi/R/survey_prep_bd.R")
+#source("~/Github/gmRi/R/survey_prep_bd.R")
 
 
 # Paths to Box folder
-res_box_path<- cs_path(box_group = "Res Data")
+#res_box_path<- cs_path(box_group = "Res Data")
 
 #---------------------------------------------
 ## Trait database and add in trophic groups

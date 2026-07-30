@@ -156,6 +156,7 @@ m_lm_time <- sdmTMB(
 m_lm_time
 sanity(m_lm_time)
 tidy(m_lm_time, effects = "ran_pars")
+tidy(m_lm_time, effects = "fixed")
 write_rds(m_lm_time, "Data/Derived/Model_output/m_lm_time.rds")
 
 

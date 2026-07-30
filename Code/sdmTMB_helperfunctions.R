@@ -1,6 +1,6 @@
 #sdmTMB helper functions
 
-predict_mod <- function(sdmTMB_mod){
+predict_mod <- function(sdmTMB_mod, type = "response"){
   polys <- read_sf("Data/Shapefiles/prediction_grid.shp") %>%
     rename(fid = FID)
   
@@ -23,9 +23,18 @@ predict_mod <- function(sdmTMB_mod){
   pred_grid$temp_scaled <- scale(pred_grid$bt_seasonal)
   pred_grid$log_landings_scaled <- scale(log(pred_grid$total_landings_mt))
   
-  predictions <- predict(sdmTMB_mod, newdata = pred_grid, type = "response") %>% 
-    left_join(polys) %>%
-    st_as_sf()
+  if (type == "response") {
+    predictions <- predict(sdmTMB_mod, newdata = pred_grid, type = "response") %>% 
+      left_join(polys) %>%
+      st_as_sf()
+  }
+  
+  if (type == "link") {
+    predictions <- predict(sdmTMB_mod, newdata = pred_grid, type = "link") %>% 
+      left_join(polys) %>%
+      st_as_sf()
+  }
+
   
   return(predictions)
 }
@@ -122,10 +131,12 @@ plot_model_outputs <- function(model, return_plot = c("p1", "p2"), .label = "", 
   
   if (return_plot == "p1") {
     # Predict over grid
-    predictions <- predict(model, newdata = pred_grid, type = "response") %>%
-      left_join(polys) %>%
-      st_as_sf()
     
+    if(family.log == F){
+      predictions <- predict(model, newdata = pred_grid, type = "response") %>%
+        left_join(polys) %>%
+        st_as_sf()
+      
       p1 <- predictions %>%
         filter(year %in% c(1970, 1990, 2010, 2024)) %>%
         ggplot() +
@@ -136,17 +147,51 @@ plot_model_outputs <- function(model, return_plot = c("p1", "p2"), .label = "", 
         facet_grid(season ~ year) +
         coord_sf(expand = FALSE) +
         scale_x_continuous(breaks = c(-68, -72, -76)) +
-        labs(fill = .label, title = .label) +
+        labs(fill = .label) +
         theme_bd() +
         theme(
-          legend.position = "inside",
-          legend.position.inside = c(0.925, 0.1),
+          # Places legend cleanly above the plotting frame next to the title
+          legend.position = "top", 
           legend.direction = "horizontal",
-          legend.title = element_blank(),
+          legend.justification = "left",
+          legend.margin = margin(b = -10, t = 0), # Pulls the bar up closer to title
           strip.background.y = element_blank(),
-          strip.text.y = element_blank(),
-          legend.background = element_blank()
+          strip.text.y = element_blank()
         )
+    }
+    if(family.log == T){
+      predictions <- predict(model, newdata = pred_grid, type = "link") %>%
+        left_join(polys) %>%
+        st_as_sf()
+      
+      p1 <- predictions %>%
+        filter(year %in% c(1970, 1990, 2010, 2024)) %>%
+        ggplot() +
+        geom_sf(aes(fill = est)) +
+        scale_fill_viridis_c(
+          # Hardcodes the log breakpoints directly within your active 11.28 to 15.52 window
+          breaks = log(c(1e5, 5e5, 3e6)),
+          
+          # Displays them cleanly on the response scale in scientific format
+          labels = c("100K", "500K", "3M")
+        )+
+        geom_sf(data = ecodata::epu_sf, aes(geometry = geometry),
+                fill = "transparent", color = "darkred", lwd = 0.25) +
+        facet_grid(season ~ year) +
+        coord_sf(expand = FALSE) +
+        scale_x_continuous(breaks = c(-68, -72, -76)) +
+        labs(fill = .label) +
+        theme_bd() +
+        theme(
+          # Places legend cleanly above the plotting frame next to the title
+          legend.position = "top", 
+          legend.direction = "horizontal",
+          legend.justification = "left",
+          legend.margin = margin(b = -10, t = 0), # Pulls the bar up closer to title
+          strip.background.y = element_blank(),
+          strip.text.y = element_blank()
+        )
+    }
     
     return(p1)
   }
@@ -239,8 +284,62 @@ plot_model_outputs <- function(model, return_plot = c("p1", "p2"), .label = "", 
   }
 }
 
-
-
-
+estimate_decadal_slopes <- function(model, ref_epu = "GB", ref_season = "FALL") {
+  library(dplyr)
+  
+  # 1. Extract fixed effects and terms
+  tidy_coefs <- sdmTMB::tidy(model, effects = "fixed")
+  beta <- tidy_coefs$estimate
+  names(beta) <- tidy_coefs$term
+  
+  # Extract unique levels from model terms to reconstruct the grid
+  all_terms <- tidy_coefs$term
+  
+  # Find unique EPUs present in model terms (e.g., "EPUGOM" -> "GOM")
+  epu_terms <- all_terms[grepl("^EPU", all_terms) & !grepl(":", all_terms)]
+  epu_levels <- c(ref_epu, gsub("^EPU", "", epu_terms))
+  
+  # Find unique seasons present in model terms (e.g., "seasonSPRING" -> "SPRING")
+  season_terms <- all_terms[grepl("^season", all_terms) & !grepl(":", all_terms)]
+  season_levels <- c(ref_season, gsub("^season", "", season_terms))
+  
+  # 2. Extract variance-covariance matrix
+  V <- vcov(model)
+  
+  # 3. Create minimal grid for contrasts (scaled_year at 1 vs 0)
+  grid <- expand.grid(EPU = epu_levels, season = season_levels)
+  grid_1 <- grid %>% mutate(scaled_year = 1)
+  grid_0 <- grid %>% mutate(scaled_year = 0)
+  
+  # 4. Generate model matrices based on fixed formula
+  form <- ~ scaled_year * EPU * season
+  X1 <- model.matrix(form, data = grid_1)
+  X0 <- model.matrix(form, data = grid_0)
+  
+  # 5. Build contrast matrix and align columns with beta
+  L <- X1 - X0
+  L <- L[, names(beta), drop = FALSE]
+  
+  # 6. Compute log-scale slopes and standard errors
+  slope_estimates <- L %*% beta
+  slope_variances <- diag(L %*% V %*% t(L))
+  slope_se        <- sqrt(slope_variances)
+  
+  # 7. Compile results and calculate % change per decade
+  results <- grid %>%
+    mutate(
+      log_slope      = as.vector(slope_estimates),
+      log_std.error  = slope_se,
+      log_conf.low   = log_slope - 1.96 * slope_se,
+      log_conf.high  = log_slope + 1.96 * slope_se,
+      
+      # Transform to Percent Change per Decade
+      pct_change      = (exp(log_slope) - 1) * 100,
+      pct_conf_low    = (exp(log_conf.low) - 1) * 100,
+      pct_conf_high   = (exp(log_conf.high) - 1) * 100
+    )
+  
+  return(results)
+}
 
 

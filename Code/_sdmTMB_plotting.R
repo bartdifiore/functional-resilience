@@ -118,11 +118,11 @@ shelf <- read.csv("Data/Derived/CWM_trawl_dataset_wholeshelf.csv")
   p7 <- plot_model_outputs(m_lm_time, return_plot = "p1", .label = "Length-at-maturity (cm)")  # for spatial map
   p8 <- plot_model_outputs(m_lm_time, return_plot = "p2", .label = "Length-at-maturity (cm)", family.log = T) 
   
-  p <- ggdraw(xlim = c(0, 8.5), ylim = c(0,3.66)) +
+  p_lm <- ggdraw(xlim = c(0, 8.5), ylim = c(0,3.66)) +
     draw_plot(p7, x = 0, y = 0, width = 0.7*8.5, height = 3.66) +
-    draw_plot(p8, x = 0.7*8.5, y = 0.1, width = 0.3*8.5, height = 3.66*0.925)
+    draw_plot(p8, x = 0.7*8.5, y = 0.05, width = 0.3*8.5, height = 3.66*0.95)
   
-  ggsave("Figures/fig_lm.png", p, height = 3.66*2, width = 8.5*2, bg = "white")
+  ggsave("Figures/fig_lm.png", p_lm, height = 3.66*2, width = 8.5*2, bg = "white")
   
 # Offspring size
   
@@ -160,14 +160,14 @@ shelf <- read.csv("Data/Derived/CWM_trawl_dataset_wholeshelf.csv")
   m_fecundity_time
   sanity(m_fecundity_time)
   
-  p13 <- plot_model_outputs(m_fecundity_time, return_plot = "p1", .label = "Fecundity (num. eggs)")  # for spatial map
+  p13 <- plot_model_outputs(m_fecundity_time, return_plot = "p1", .label = "Fecundity\n(num. eggs)  ", family.log = T)  # for spatial map
   p14 <- plot_model_outputs(m_fecundity_time, return_plot = "p2", .label = "Fecundity (num. eggs)", family.log = T) 
   
-  p <- ggdraw(xlim = c(0, 8.5), ylim = c(0,3.66)) +
+  p_fecundity <- ggdraw(xlim = c(0, 8.5), ylim = c(0,3.66)) +
     draw_plot(p13, x = 0, y = 0, width = 0.7*8.5, height = 3.66) +
-    draw_plot(p14, x = 0.7*8.5, y = 0.1, width = 0.3*8.5, height = 3.66*0.925)
+    draw_plot(p14, x = 0.7*8.5, y = 0.05, width = 0.3*8.5, height = 3.66*0.95)
   
-  ggsave("Figures/fig_fecundity.png", p, height = 3.66*2, width = 8.5*2, bg = "white")
+  ggsave("Figures/fig_fecundity.png", p_fecundity, height = 3.66*2, width = 8.5*2, bg = "white")
   
 # Age-at-maturity
   
@@ -193,11 +193,11 @@ shelf <- read.csv("Data/Derived/CWM_trawl_dataset_wholeshelf.csv")
   p17 <- plot_model_outputs(m_k_time, return_plot = "p1", .label = "VB Growth (k)")  # for spatial map
   p18 <- plot_model_outputs(m_k_time, return_plot = "p2", .label = "VB Growth (k)", family.log = T) 
   
-  p <- ggdraw(xlim = c(0, 8.5), ylim = c(0,3.66)) +
+  p_k <- ggdraw(xlim = c(0, 8.5), ylim = c(0,3.66)) +
     draw_plot(p17, x = 0, y = 0, width = 0.7*8.5, height = 3.66) +
-    draw_plot(p18, x = 0.7*8.5, y = 0.1, width = 0.3*8.5, height = 3.66*0.925)
+    draw_plot(p18, x = 0.7*8.5, y = 0.05, width = 0.3*8.5, height = 3.66*0.95)
   
-  ggsave("Figures/fig_k.png", p, height = 3.66*2, width = 8.5*2, bg = "white")
+  ggsave("Figures/fig_k.png", p_k, height = 3.66*2, width = 8.5*2, bg = "white")
   
 # L_inf-coefficient
   
@@ -209,11 +209,11 @@ shelf <- read.csv("Data/Derived/CWM_trawl_dataset_wholeshelf.csv")
   p19 <- plot_model_outputs(m_linf_time, return_plot = "p1", .label = "VB length-at-infinity")  # for spatial map
   p20 <- plot_model_outputs(m_linf_time, return_plot = "p2", .label = "VB length-at-infinity", family.log = T) 
   
-  p <- ggdraw(xlim = c(0, 8.5), ylim = c(0,3.66)) +
+  p_linf <- ggdraw(xlim = c(0, 8.5), ylim = c(0,3.66)) +
     draw_plot(p19, x = 0, y = 0, width = 0.7*8.5, height = 3.66) +
-    draw_plot(p20, x = 0.7*8.5, y = 0.1, width = 0.3*8.5, height = 3.66*0.925)
+    draw_plot(p20, x = 0.7*8.5, y = 0.05, width = 0.3*8.5, height = 3.66*0.95)
   
-  ggsave("Figures/fig_linf.png", p, height = 3.66*2, width = 8.5*2, bg = "white")
+  ggsave("Figures/fig_linf.png", p_linf, height = 3.66*2, width = 8.5*2, bg = "white")
   
   
 # Max observed length
@@ -234,6 +234,117 @@ shelf <- read.csv("Data/Derived/CWM_trawl_dataset_wholeshelf.csv")
   
   
   
+#-----------------------------------------
+## Summary figure
+#-----------------------------------------
+  
+  library(cowplot)
+  
+  plot_grid(p_lm, p_linf, p_k, p_fecundity, nrow = 4, ncol = 1)
+  
+  ggsave("Figures/fig2_20260716.png", height = 11*1.5, width = 8.5*1.5, bg = "white")
+  
+  plot_grid(p7,p8,p17,p18,p19,p20,p13,p14, nrow = 4, ncol = 2, rel_widths = c(3,1))
+  
+  plot_test <- ggdraw(xlim = c(0, 8.5), ylim = c(0,11)) +
+    draw_plot(p7, x = 0, y = 8.25, width = 0.7*8.5, height = 2.75) +
+    draw_plot(p8, x = 0.7*8.5, y = 8.25+0.05, width = 0.3*8.5, height = 2.75*0.95)+
+    draw_plot(p17, x = 0, y = 5.5, width = 0.7*8.5, height = 2.75) +
+    draw_plot(p18, x = 0.7*8.5, y = 5.5+0.05, width = 0.3*8.5, height = 2.75*0.95)+
+    draw_plot(p19, x = 0, y = 2.75, width = 0.7*8.5, height = 2.75) +
+    draw_plot(p20, x = 0.7*8.5, y = 2.75+ 0.05, width = 0.3*8.5, height = 2.75*0.95)+
+    draw_plot(p13, x = 0, y = 0, width = 0.7*8.5, height = 2.75) +
+    draw_plot(p14, x = 0.7*8.5, y = 0.05, width = 0.3*8.5, height = 2.75*0.95)
+    
+  plot_test
+  ggsave("Figures/fig2_20260716.png",plot_test, height = 11*1.5, width = 8.5*1.5, bg = "white")
+  
+  # 1. Store your models in the named list (same as before)
+  
+  m_lm_time <- readRDS("Data/Derived/Model_output/m_lm_time.rds")
+  m_fecundity_time <- readRDS("Data/Derived/Model_output/m_fecundity_time.rds")
+  m_k_time <- readRDS("Data/Derived/Model_output/m_k_time.rds")
+  m_linf_time <- readRDS("Data/Derived/Model_output/m_linf_time.rds")
+  m_maxl_time <- readRDS("Data/Derived/Model_output/m_maxl_time.rds")
+  m_age_time <- readRDS("Data/Derived/Model_output/m_age_time.rds")
+  m_tl_time <- readRDS("Data/Derived/Model_output/m_tl_time.rds")
+  m_os_time <- readRDS("Data/Derived/Model_output/m_os_time.rds")
+  
+tidy(m_lm_time)
+
+
+
+library(purrr)
+
+# 1. Place your 8 models into a named list
+model_list <- list(
+  "Length_at_maturity" = m_lm_time,
+  "Fecundity"         = m_fecundity_time,
+  "VB_K"       = m_k_time,
+  "VB_Linf"       = m_linf_time,
+  "Max_length"          = m_maxl_time,
+  "Age_at_maturity"     = m_age_time,
+  "Trophic_level"       = m_tl_time,
+  "Offspring_size"    = m_os_time
+)
+
+
+# 2. Run the function across all models and combine into a master dataframe
+all_results <- map_df(model_list, estimate_decadal_slopes, .id = "model_name")
+
+# View the final combined data frame
+print(all_results)  
+
+
+# 1. Prepare data and create the text labels dynamically
+heatmap_df <- all_results %>%
+  mutate(x_axis_group = paste(EPU, season, sep = "\n")) %>%
+  mutate(model_name = gsub("_", " ", model_name)) %>%
+  mutate(text_color = ifelse(log_conf.low <= 0 & log_conf.high >= 0, "gray75", "black")) %>%
+  filter(EPU != "SS") %>%
+  mutate(EPU = factor(EPU, levels = c("GOM", "GB", "MAB")), 
+         model_name = factor(model_name, levels = rev(c("Length at maturity", "Age at maturity", "VB Linf", "VB K", "Max length", "Trophic level", "Fecundity", "Offspring size"))), 
+         season = factor(season, levels = c("SPRING", "FALL")))
+
+
+# Calculate symmetric limits so 0 is perfectly in the center of the color palette
+max_abs_val <- max(abs(heatmap_df$pct_change), na.rm = TRUE)
+
+# 2. Plot the Heatmap
+fig_heatmap <- ggplot(heatmap_df, aes(x = EPU, y = model_name, fill = pct_change)) +
+  geom_tile(color = "white", linewidth = 0.4, show.legend = F) +
+  
+  # Diverging color scale centered at 0 with symmetric boundaries
+  scale_fill_gradient2(
+    low = "#a50026",      # Deep Red
+    mid = "#ffffff",       # Pure White
+    high = "#313695",       # Deep Blue
+    midpoint = 0,
+    # limits = c(-max_abs_val, max_abs_val), 
+    name = "Estimated\nSlope"
+  ) +
+  # # NEW: Add the text labels containing the asterisks
+  geom_text(aes(label = round(pct_change,2), color = text_color), size = 3.2) +
+  scale_color_identity() +
+  labs(
+    x = "",
+    y = "", 
+  ) +
+  facet_wrap(~season) +
+  coord_cartesian(clip = "off") + 
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 0, hjust = 0.5, face = "bold", size = 9),
+    axis.text.y = element_text(face = "bold", size = 10),
+    strip.text = element_text(face = "bold", size = 12),
+    panel.grid = element_blank(),
+    plot.title = element_text(face = "bold", hjust = 0.5, size = 12),
+    plot.subtitle = element_text(hjust = 0.5, size = 10, face = "italic"),
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.8) 
+  )
+fig_heatmap
+
+ggsave("Figures/fig_heatmap.png", fig_heatmap, bg = "white", width = 6.5, height = 3)    
   
   
   
@@ -241,18 +352,12 @@ shelf <- read.csv("Data/Derived/CWM_trawl_dataset_wholeshelf.csv")
   
   
   
+plot_both_model_outputs(model = m_fecundity_time, pred_grid = pred_grid, family.log = T)
   
   
   
   
-  
-  
-  
-  
-  
-  
-  
-  
+
   
   
   
