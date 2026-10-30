@@ -1,3 +1,5 @@
+library(tidyverse)
+library(sdmTMB)
 library(ecodata)
 library(sf)
 
@@ -32,6 +34,9 @@ write_rds(bt_means, "Data/Derived/bottom_temp_means.rds")
 #-----------------------------
 
 year_filter <- c(seq(1963, 1969, by = 1), 2017, 2020)
+
+bt_means <- read_rds("Data/Derived/bottom_temp_means.rds") %>%
+  ungroup()
 
 meta <- read.csv("Data/Derived/trawlmeta_wBT.csv")
 
