@@ -146,7 +146,7 @@ shelf <- read.csv("Data/Derived/CWM_trawl_dataset_wholeshelf.csv")
   sanity(m_tl_time)
   
   p11 <- plot_model_outputs(m_tl_time, return_plot = "p1", .label = "Trophic level")  # for spatial map
-  p12 <- plot_model_outputs(m_tl_time, return_plot = "p2", .label = "Trophic level", family.log = F) 
+  p12 <- plot_model_outputs(m_tl_time, return_plot = "p2", .label = "Trophic level", family.log = T) 
   
   p <- ggdraw(xlim = c(0, 8.5), ylim = c(0,3.66)) +
     draw_plot(p11, x = 0, y = 0, width = 0.7*8.5, height = 3.66) +

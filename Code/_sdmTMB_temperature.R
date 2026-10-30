@@ -91,20 +91,24 @@ df %>%
 ## Model: length-at-maturity
 #----------------------------------------------------
 
-mesh <- sdmTMB::make_mesh(df2, xy_cols = c("X", "Y"), cutoff = 30)
+
 
 plot(mesh)
 
+df_lm <- df2 %>%
+  drop_na(length_maturity, climate_trend, annual_temp_anomaly)
+
+mesh <- sdmTMB::make_mesh(df_lm, xy_cols = c("X", "Y"), cutoff = 30)
 
 m_two_scales_lm <- sdmTMB(
-  data = df2,
-  formula = length_maturity ~ EPU * season *(climate_trend + temp_anomaly),
+  data = df_lm,
+  formula = length_maturity ~ EPU * season *(climate_trend + annual_temp_anomaly),
   # formula = length_maturity ~ 0,
   mesh = mesh,
   family = gengamma(link = "log"), 
   spatial = "off",
   time = "year",
-  time_varying = ~ 0 + EPU*season,
+  time_varying = ~  1,
   time_varying_type = "ar1",
   # spatial_varying = ~ scaled_year_season,
   spatiotemporal = "IID", 
@@ -140,8 +144,8 @@ slopes_df <- slope_grid %>%
 #----------------------------------------------------
 
 m_two_scales_fecundity <- sdmTMB(
-  data = df,
-  formula = fecundity ~ EPU * season *(annual_mean_bt + temp_anomaly),
+  data = df2,
+  formula = fecundity ~ EPU * season *(climate_trend + temp_anomaly),
   # formula = length_maturity ~ 0,
   mesh = mesh,
   family = gengamma(link = "log"), 
@@ -157,7 +161,7 @@ m_two_scales_fecundity <- sdmTMB(
 sanity(m_two_scales_fecundity)
 tidy(m_two_scales_fecundity, effects = "fixed") %>% View()
 
-dat <- ggeffects::ggeffect(m_two_scales_fecundity, terms = c("annual_mean_bt", "EPU[GOM, MAB, GB]", "season"))
+dat <- ggeffects::ggeffect(m_two_scales_fecundity, terms = c("temp_anomaly","EPU[GOM, MAB, GB]", "season"))
 plot(dat)
 
 # 1. Extract coefficients and the variance-covariance matrix
@@ -168,7 +172,7 @@ vc <- as.matrix(vcov(m_two_scales_fecundity))
 # 2. Define your categories (update matching your exact level names)
 epus <- c("GOM", "GB", "MAB")       # Example EPUs
 seasons <- c("FALL", "SPRING")            # Example seasons
-covariates <- c("annual_mean_bt")
+covariates <- c("climate_trend", "temp_anomaly")
 
 # 3. Create a combination grid for calculation
 slope_grid <- expand_grid(EPU = epus, season = seasons, covariate = covariates)
@@ -185,8 +189,8 @@ slopes_df
 #----------------------------------------------------
 
 m_two_scales_linf <- sdmTMB(
-  data = df,
-  formula = l_inf ~ EPU * season *(annual_mean_bt + temp_anomaly),
+  data = df2,
+  formula = l_inf ~ EPU * season *(climate_trend + temp_anomaly),
   # formula = length_maturity ~ 0,
   mesh = mesh,
   family = gengamma(link = "log"), 
@@ -202,7 +206,7 @@ m_two_scales_linf <- sdmTMB(
 sanity(m_two_scales_linf)
 tidy(m_two_scales_linf, effects = "fixed") %>% View()
 
-dat <- ggeffects::ggeffect(m_two_scales_linf, terms = c("annual_mean_bt", "EPU[GOM, MAB, GB]", "season"))
+dat <- ggeffects::ggeffect(m_two_scales_linf, terms = c("temp_anomaly","EPU[GOM, MAB, GB]", "season"))
 plot(dat)
 
 # 1. Extract coefficients and the variance-covariance matrix
@@ -213,7 +217,7 @@ vc <- as.matrix(vcov(m_two_scales_linf))
 # 2. Define your categories (update matching your exact level names)
 epus <- c("GOM", "GB", "MAB")       # Example EPUs
 seasons <- c("FALL", "SPRING")            # Example seasons
-covariates <- c("annual_mean_bt")
+covariates <- c("climate_trend", "temp_anomaly")
 
 # 3. Create a combination grid for calculation
 slope_grid <- expand_grid(EPU = epus, season = seasons, covariate = covariates)
@@ -229,8 +233,8 @@ slopes_df
 #----------------------------------------------------
 
 m_two_scales_k <- sdmTMB(
-  data = df,
-  formula = k ~ EPU * season *(annual_mean_bt + temp_anomaly),
+  data = df2,
+  formula = k ~ EPU * season *(climate_trend + temp_anomaly),
   # formula = length_maturity ~ 0,
   mesh = mesh,
   family = gengamma(link = "log"), 
@@ -246,7 +250,7 @@ m_two_scales_k <- sdmTMB(
 sanity(m_two_scales_k)
 tidy(m_two_scales_k, effects = "fixed") %>% View()
 
-dat <- ggeffects::ggeffect(m_two_scales_k, terms = c("annual_mean_bt", "EPU[GOM, MAB, GB]", "season"))
+dat <- ggeffects::ggeffect(m_two_scales_k, terms = c("temp_anomaly","EPU[GOM, MAB, GB]", "season"))
 plot(dat)
 
 # 1. Extract coefficients and the variance-covariance matrix
@@ -257,7 +261,7 @@ vc <- as.matrix(vcov(m_two_scales_k))
 # 2. Define your categories (update matching your exact level names)
 epus <- c("GOM", "GB", "MAB")       # Example EPUs
 seasons <- c("FALL", "SPRING")            # Example seasons
-covariates <- c("annual_mean_bt")
+covariates <- c("climate_trend", "temp_anomaly")
 
 # 3. Create a combination grid for calculation
 slope_grid <- expand_grid(EPU = epus, season = seasons, covariate = covariates)
@@ -273,8 +277,8 @@ slopes_df
 #----------------------------------------------------
 
 m_two_scales_os <- sdmTMB(
-  data = df,
-  formula = offspring_size ~ EPU * season *(annual_mean_bt + temp_anomaly),
+  data = df2,
+  formula = offspring_size ~ EPU * season *(climate_trend + temp_anomaly),
   # formula = length_maturity ~ 0,
   mesh = mesh,
   family = gengamma(link = "log"), 
@@ -290,7 +294,7 @@ m_two_scales_os <- sdmTMB(
 sanity(m_two_scales_os)
 tidy(m_two_scales_os, effects = "fixed") %>% View()
 
-dat <- ggeffects::ggeffect(m_two_scales_os, terms = c("annual_mean_bt", "EPU[GOM, MAB, GB]", "season"))
+dat <- ggeffects::ggeffect(m_two_scales_os, terms = c("temp_anomaly","EPU[GOM, MAB, GB]", "season"))
 plot(dat)
 
 # 1. Extract coefficients and the variance-covariance matrix
@@ -301,7 +305,7 @@ vc <- as.matrix(vcov(m_two_scales_os))
 # 2. Define your categories (update matching your exact level names)
 epus <- c("GOM", "GB", "MAB")       # Example EPUs
 seasons <- c("FALL", "SPRING")            # Example seasons
-covariates <- c("annual_mean_bt")
+covariates <- c("climate_trend", "temp_anomaly")
 
 # 3. Create a combination grid for calculation
 slope_grid <- expand_grid(EPU = epus, season = seasons, covariate = covariates)
@@ -317,8 +321,8 @@ slopes_df
 #----------------------------------------------------
 
 m_two_scales_tl <- sdmTMB(
-  data = df,
-  formula = trophic_level ~ EPU * season *(annual_mean_bt + temp_anomaly),
+  data = df2,
+  formula = trophic_level ~ EPU * season *(climate_trend + temp_anomaly),
   # formula = length_maturity ~ 0,
   mesh = mesh,
   family = gengamma(link = "log"), 
@@ -334,7 +338,7 @@ m_two_scales_tl <- sdmTMB(
 sanity(m_two_scales_tl)
 tidy(m_two_scales_tl, effects = "fixed") %>% View()
 
-dat <- ggeffects::ggeffect(m_two_scales_tl, terms = c("annual_mean_bt", "EPU[GOM, MAB, GB]", "season"))
+dat <- ggeffects::ggeffect(m_two_scales_tl, terms = c("temp_anomaly","EPU[GOM, MAB, GB]", "season"))
 plot(dat)
 
 # 1. Extract coefficients and the variance-covariance matrix
@@ -345,7 +349,7 @@ vc <- as.matrix(vcov(m_two_scales_tl))
 # 2. Define your categories (update matching your exact level names)
 epus <- c("GOM", "GB", "MAB")       # Example EPUs
 seasons <- c("FALL", "SPRING")            # Example seasons
-covariates <- c("annual_mean_bt")
+covariates <- c("climate_trend", "temp_anomaly")
 
 # 3. Create a combination grid for calculation
 slope_grid <- expand_grid(EPU = epus, season = seasons, covariate = covariates)
@@ -362,8 +366,8 @@ slopes_df
 #----------------------------------------------------
 
 m_two_scales_ml <- sdmTMB(
-  data = df,
-  formula = max_length ~ EPU * season *(annual_mean_bt + temp_anomaly),
+  data = df2,
+  formula = max_length ~ EPU * season *(climate_trend + temp_anomaly),
   # formula = length_maturity ~ 0,
   mesh = mesh,
   family = gengamma(link = "log"), 
@@ -379,7 +383,7 @@ m_two_scales_ml <- sdmTMB(
 sanity(m_two_scales_ml)
 tidy(m_two_scales_ml, effects = "fixed") %>% View()
 
-dat <- ggeffects::ggeffect(m_two_scales_ml, terms = c("annual_mean_bt", "EPU[GOM, MAB, GB]", "season"))
+dat <- ggeffects::ggeffect(m_two_scales_ml, terms = c("temp_anomaly","EPU[GOM, MAB, GB]", "season"))
 plot(dat)
 
 # 1. Extract coefficients and the variance-covariance matrix
@@ -390,7 +394,7 @@ vc <- as.matrix(vcov(m_two_scales_ml))
 # 2. Define your categories (update matching your exact level names)
 epus <- c("GOM", "GB", "MAB")       # Example EPUs
 seasons <- c("FALL", "SPRING")            # Example seasons
-covariates <- c("annual_mean_bt")
+covariates <- c("climate_trend", "temp_anomaly")
 
 # 3. Create a combination grid for calculation
 slope_grid <- expand_grid(EPU = epus, season = seasons, covariate = covariates)
