@@ -1,5 +1,8 @@
-# Stuff that I added 
+# Stuff that I added
 Data/Derived/Model_output
+
+# macOS Finder metadata
+.DS_Store
 
 # History files
 .Rhistory
