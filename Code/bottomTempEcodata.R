@@ -8,10 +8,13 @@ library(tidyr)
 
 sf_use_s2(FALSE)
 
+year_filter <- c(seq(1963, 1969, by = 1), 2017, 2020)
+
 btg <- ecodata::bottom_temp_model_gridded
 
 ecodata_epu <- ecodata::epu_sf %>%
-  select(EPU)
+  select(EPU) %>%
+  st_make_valid()
 
 # btg_sp <- btg %>% 
 #   distinct(Latitude, Longitude) %>%
@@ -27,8 +30,6 @@ ecodata_epu <- ecodata::epu_sf %>%
   
 # 2. Extract unique grid coordinate centers to define the 1/12 degree cell boxes
 grid_resolution <- 1/12  # ~0.083333 degrees
-
-st_make_grid(btg, cellsize = grid_resolution)
 
 # Create explicit polygon bounding geometry around each point center
 bt_grid_sf <- btg %>%
@@ -61,25 +62,58 @@ meta <- readRDS("Data/NMFS_trawl/survdat_pull_20250206.rds")$survdat %>%
   janitor::clean_names() %>%
   mutate(haul_id = paste(cruise6, station, sep = "_")) %>%
   select(cruise6, station, haul_id, stratum, tow, year, season, lat, lon) %>%
-  distinct()
-
-temp <- meta %>% 
+  distinct() %>%
   drop_na(lat, lon) %>%
-  st_as_sf(coords = c("lon", "lat"), crs = st_crs(ecodata_epu), remove = F)
+  st_as_sf(coords = c("lon", "lat"), crs = st_crs(ecodata_epu), remove = F) %>%
+  st_make_valid() %>%
+  mutate(id = paste(year, season, sep = "-")) %>% 
+  filter(!year %in% year_filter)
 
-test <- st_join(temp, bt_grid_sf %>% select(-c(Longitude, Latitude)), left = T) %>%
+bt_grid_sf2 <- bt_grid_sf %>%
+  rename(year = Time, bottom_temp = Value) %>%
+  filter(!year %in% year_filter) %>%
+  mutate(season = ifelse(Var == "spring", "SPRING", "FALL")) %>%
+  mutate(id = paste(year, season, sep = "-")) %>%
+  select(id, season, year, bottom_temp) %>%
+  st_make_valid()
+
+
+index <- unique(meta$id)
+out <- list()
+for(i in 1:length(index)){
+  out[[i]] <- meta %>% 
+    filter(id == index[i]) %>%
+    st_join(bt_grid_sf2 %>% filter(id == index[i]))
+  
+  combined_df <- data.table::rbindlist(out)
+}
+
+meta_wbt <- combined_df %>%
+  select(cruise6, station, haul_id, stratum, tow, year.x, season.x, lat, lon, bottom_temp) %>%
   st_drop_geometry() %>%
-  left_join(bt_seasonal)
+  rename(year = year.x, season = season.x)
 
-epu_strata <- read.csv("Data/Derived/strata_to_epu.csv")
-
-df <- read.csv("Data/Derived/CWM_trawl_dataset.csv") %>% 
-  as_tibble()
+write.csv(meta_wbt, "Data/Derived/trawlmeta_wBT.csv", quote = F, row.names = F) 
 
 
 
 
+polys <- read_sf("Data/Shapefiles/prediction_grid.shp") %>%
+  st_transform(crs = st_crs(ecodata_epu))
 
+btg_sp <- ecodata::bottom_temp_model_gridded %>%
+  st_as_sf(coords = c("Longitude", "Latitude"), crs = st_crs(ecodata_epu)) %>% 
+  st_join(polys) %>%
+  st_drop_geometry() %>%
+  filter(Var %in% c("spring", "fall")) %>% 
+  mutate(season = ifelse(Var == "spring", "SPRING", "FALL")) %>% 
+  rename(year = Time, fid = FID, bottom_temp = Value) %>%
+  select(year, season, bottom_temp, fid) %>%
+  group_by(year, season, fid) %>%
+  filter(year >= 1970) %>%
+  summarize(bottom_temp = mean(bottom_temp))
+
+write_rds(btg_sp, "Data/Derived/prediction_grid_wBT.rds")
 
 
 

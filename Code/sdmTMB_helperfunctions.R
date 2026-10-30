@@ -75,11 +75,11 @@ plot_spatiotemporal <- function(sdmTMB_mod, years = c(1975, 1985, 1995, 2005, 20
 
 
 # Function to compute slope, SE, and CI
-get_slope_ci <- function(epu, season, coefs, vc) {
-  terms <- "scaled_year"
+get_slope_ci <- function(epu, season, coefs, vc, covariate) {
+  terms <- covariate
   
   if (epu != "GB") {
-    terms <- c(terms, paste0("scaled_year:EPU", epu))
+    terms <- c(terms, paste0(terms, ":EPU", epu))
   }
   
   if (season == "SPRING") {
@@ -341,5 +341,73 @@ estimate_decadal_slopes <- function(model, ref_epu = "GB", ref_season = "FALL") 
   
   return(results)
 }
+
+
+library(dplyr)
+library(tidyr)
+
+# 1. Extract coefficients and the variance-covariance matrix
+# Works for sdmTMB, lm, glm, etc.
+coefs <- tibble::enframe(coef(m_two_scales_lm), name = "term", value = "estimate")
+vc <- as.matrix(vcov(m_two_scales_lm))
+
+# 2. Define your categories (update matching your exact level names)
+epus <- c("GOM", "GB", "MAB")       # Example EPUs
+seasons <- c("FALL", "SPRING")            # Example seasons
+covariates <- c("annual_mean_bt")
+
+# 3. Create a combination grid for calculation
+slope_grid <- expand_grid(EPU = epus, season = seasons, covariate = covariates)
+
+# 4. Function to calculate slope and SE using the delta method / linear combination
+get_slope_ci <- function(epu_level, season_level, cov_name, coef_df, vcov_mat) {
+  
+  # Identify all potential terms that contribute to this specific slope
+  # We look for terms that contain the covariate and match the EPU / Season levels
+  # (Accounting for reference levels where interaction terms won't exist in the matrix)
+  
+  all_terms <- coef_df$term
+  
+  # Base covariate term (the main effect)
+  cov_main <- cov_name
+  
+  # Interaction terms
+  epu_int <- paste0("EPU", epu_level, ":", cov_name)
+  season_int <- paste0("season", season_level, ":", cov_name)
+  three_way_1 <- paste0("EPU", epu_level, ":season", season_level, ":", cov_name)
+  three_way_2 <- paste0("season", season_level, ":EPU", epu_level, ":", cov_name) # Order check
+  
+  # Filter down to the terms that actually exist in the model matrix
+  active_terms <- c(cov_main, epu_int, season_int, three_way_1, three_way_2)
+  active_terms <- active_terms[active_terms %in% all_terms]
+  
+  # Create the contrast vector (linear combination indicator vector)
+  w <- setNames(rep(0, length(all_terms)), all_terms)
+  w[active_terms] <- 1
+  
+  # Calculate slope estimate: w' * beta
+  slope_est <- sum(w * coef_df$estimate)
+  
+  # Calculate standard error: sqrt(w' * vcov * w)
+  slope_var <- t(w) %*% vcov_mat %*% w
+  slope_se <- sqrt(as.numeric(slope_var))
+  
+  return(tibble(
+    estimate = slope_est,
+    std.error = slope_se,
+    ci_lower = slope_est - 1.96*slope_se, 
+    ci_upper = slope_est + 1.96*slope_se,
+    statistic = slope_est / slope_se,
+    p.value = 2 * (1 - pnorm(abs(slope_est / slope_se)))
+  ))
+}
+
+# 5. Map over the grid to build your final results table
+slopes_df <- slope_grid %>%
+  purrr::pmap_dfr(~ bind_cols(tibble(EPU = ..1, season = ..2, covariate = ..3), 
+                              get_slope_ci(..1, ..2, ..3, coefs, vc)))
+
+# View the final output table
+print(slopes_df)
 
 
